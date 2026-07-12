@@ -1,90 +1,107 @@
 # Splunk Queries
 
-This file contains the SPL queries used in the **Splunk Windows Security Monitoring Lab** dashboard.
+## Overview
 
-## Executive Summary Panels
+This file contains SPL queries used in the Splunk SOC Monitoring Lab with AI Assistant.
 
-### Total Failed Logins
+The queries focus on Windows Security Event Logs and common SOC monitoring use cases.
+
+## Failed Logon Events - Event ID 4625
+
 ```spl
-source="WinEventLog:Security" EventCode=4625
-| stats count
+index=* EventCode=4625
+| table _time Account_Name Source_Network_Address host Failure_Reason
 ```
 
-### Total Successful Logins
+## Multiple Failed Logons by User and Source IP
+
 ```spl
-source="WinEventLog:Security" EventCode=4624
-| stats count
+index=* EventCode=4625
+| stats count by Account_Name Source_Network_Address host
+| where count >= 5
+| sort - count
 ```
 
-### New Accounts Created
+## Successful Logons - Event ID 4624
+
 ```spl
-source="WinEventLog:Security" EventCode=4720
-| stats count
+index=* EventCode=4624
+| table _time Account_Name Source_Network_Address host Logon_Type
 ```
 
-### Account Lockouts
+## Authentication Success vs Failure
+
 ```spl
-source="WinEventLog:Security" EventCode=4740
-| stats count
+index=* (EventCode=4624 OR EventCode=4625)
+| eval Authentication_Status=case(EventCode=4624, "Success", EventCode=4625, "Failure")
+| stats count by Authentication_Status
 ```
 
-## Authentication Panels
-
-### Failed Logon Attempts
-**Recommended visualization:** Bar chart
+## New User Account Created - Event ID 4720
 
 ```spl
-source="WinEventLog:Security" EventCode=4625
-| chart count by Account_Name
+index=* EventCode=4720
+| table _time Account_Name Target_Account_Name host
 ```
 
-### Successful Logons
-**Recommended visualization:** Bar chart
+## User Added to Security Group - Event ID 4732
 
 ```spl
-source="WinEventLog:Security" EventCode=4624
-| chart count by Account_Name
+index=* EventCode=4732
+| table _time Account_Name Group_Name Member_Name host
 ```
 
-### Authentication Success vs Failure
-**Recommended visualization:** Bar chart
+## Account Lockout - Event ID 4740
 
 ```spl
-source="WinEventLog:Security" (EventCode=4624 OR EventCode=4625)
-| chart count by EventCode
+index=* EventCode=4740
+| table _time Account_Name Caller_Computer_Name host
 ```
 
-## Investigation Tables
+## SOC AI Assistant Test Alert Search
 
-### New User Accounts Created
-**Recommended visualization:** Table
+This query creates sample alert data to test the n8n SOC AI Assistant workflow.
 
 ```spl
-source="WinEventLog:Security" EventCode=4720
-| table _time host TargetUserName SubjectUserName
-| sort - _time
+| makeresults
+| eval alert_name="Multiple Failed Login Attempts"
+| eval event_code="4625"
+| eval user="john"
+| eval source_ip="192.168.1.50"
+| eval host="WIN-ENDPOINT-01"
+| eval count="8"
+| eval time=strftime(now(), "%Y-%m-%d %H:%M:%S")
+| table alert_name event_code user source_ip host count time
 ```
 
-### Users Added to Local Security Groups
-**Recommended visualization:** Table
+## Real Failed Login Alert for n8n Workflow
+
+This query can be used to send failed login alert data to the n8n workflow.
 
 ```spl
-source="WinEventLog:Security" EventCode=4732
-| table _time host TargetUserName Group_Name SubjectUserName
-| sort - _time
+index=* EventCode=4625
+| stats count max(_time) as last_time values(host) as host by Account_Name Source_Network_Address
+| where count >= 5
+| eval alert_name="Multiple Failed Login Attempts"
+| eval event_code="4625"
+| eval user=Account_Name
+| eval source_ip=Source_Network_Address
+| eval time=strftime(last_time, "%Y-%m-%d %H:%M:%S")
+| table alert_name event_code user source_ip host count time
 ```
 
-### Account Lockouts
-**Recommended visualization:** Table
+## Suggested Alert Settings
 
-```spl
-source="WinEventLog:Security" EventCode=4740
-| table _time host Account_Name Caller_Computer_Name
-| sort - _time
+```text
+Alert Type: Scheduled
+Schedule: Every 5 minutes
+Trigger Condition: Number of Results > 0
+Trigger Mode: Once
+Throttle: 30 minutes
+Action: Webhook
+Destination: n8n Webhook URL
 ```
 
 ## Notes
 
-- Field names may vary slightly depending on your Splunk add-ons and parsing.
-- If a field does not appear, search the raw event first and adjust the query to the extracted field name in your environment.
-- Summary panels are best displayed as **Single Value** visualizations.
+The queries may need small changes depending on the Splunk index name, field names, and Windows log format.
