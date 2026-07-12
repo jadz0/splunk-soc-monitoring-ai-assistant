@@ -112,15 +112,7 @@ See `docs/soc-ai-assistant-workflow.md` for the full workflow explanation.
 
 ### n8n SOC AI Assistant Workflow
 
-![n8n Workflow Canvas](screenshots/n8n-workflow-canvas.png)
-
-### Webhook Alert Data
-
-![n8n Webhook Alert Data](screenshots/n8n-webhook-alert-data.png)
-
-### AI-Generated SOC Report
-
-![AI SOC Report](screenshots/ai-generated-soc-report.png)
+![n8n Workflow](screenshots/n8n-workflow-canvas.png)
 
 ### Discord SOC Alert Report
 
