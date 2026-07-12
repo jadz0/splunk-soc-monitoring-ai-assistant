@@ -1,0 +1,12 @@
+{
+  "result": {
+    "alert_name": "Multiple Failed Login Attempts",
+    "event_code": "4625",
+    "user": "john",
+    "source_ip": "192.168.1.50",
+    "host": "WIN-ENDPOINT-01",
+    "count": "8",
+    "time": "2026-07-12 21:35:00"
+  },
+  "results_link": "Test alert from lab workflow"
+}
